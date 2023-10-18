@@ -1,6 +1,4 @@
-use std::fs;
 use std::io;
-use std::path::Path;
 pub struct DriveInfo {
     drive_name: String,
 }
@@ -33,6 +31,27 @@ impl DriveInfo {
                     String::from_utf16_lossy(&file_system_name_buffer),
                     String::from_utf16_lossy(&volume_name_buffer),
                 ))
+            }
+        }
+    }
+    pub fn usage(&self) -> io::Result<(u64, u64, u64)> {
+        unsafe {
+            let drive_name = self.drive_name.clone() + ":\\";
+            let drive_name = drive_name.encode_utf16().collect::<Vec<_>>();
+            let mut available_free_space: winapi::um::winnt::ULARGE_INTEGER =
+                winapi::um::winnt::ULARGE_INTEGER { QuadPart: 0 };
+
+            let mut total_size: winapi::um::winnt::ULARGE_INTEGER = 0;
+            let mut total_free_space: winapi::um::winnt::ULARGE_INTEGER = 0;
+            if 0 != winapi::um::fileapi::GetDiskFreeSpaceExW(
+                drive_name.as_ptr(),
+                &mut available_free_space,
+                &mut total_size,
+                &mut total_free_space,
+            ) {
+                return Ok((available_free_space, total_size, total_free_space));
+            } else {
+                return Err(io::Error::last_os_error());
             }
         }
     }
