@@ -1,5 +1,6 @@
 extern crate winapi;
 use std::io;
+use winapi::um::winnt::ULARGE_INTEGER;
 pub struct DriveInfo {
     drive_name: String,
 }
@@ -39,18 +40,20 @@ impl DriveInfo {
         unsafe {
             let drive_name = self.drive_name.clone() + ":\\";
             let drive_name = drive_name.encode_utf16().collect::<Vec<_>>();
-            let mut available_free_space: winapi::um::winnt::ULARGE_INTEGER =
-                winapi::um::winnt::ULARGE_INTEGER { QuadPart: 0 };
-
-            let mut total_size: winapi::um::winnt::ULARGE_INTEGER = 0;
-            let mut total_free_space: winapi::um::winnt::ULARGE_INTEGER = 0;
+            let mut available_free_space: ULARGE_INTEGER;
+            let mut total_size: ULARGE_INTEGER;
+            let mut total_free_space: ULARGE_INTEGER;
             if 0 != winapi::um::fileapi::GetDiskFreeSpaceExW(
                 drive_name.as_ptr(),
                 &mut available_free_space,
                 &mut total_size,
                 &mut total_free_space,
             ) {
-                return Ok((available_free_space, total_size, total_free_space));
+                return Ok((
+                    *available_free_space.QuadPart(),
+                    *total_size.QuadPart(),
+                    *total_free_space.QuadPart(),
+                ));
             } else {
                 return Err(io::Error::last_os_error());
             }
