@@ -52,3 +52,12 @@ pub fn get_drive_labels() -> Vec<char> {
     }
     result
 }
+pub fn get_drives() -> Vec<DriveInfo> {
+    let mut result = vec![];
+    for drive_letter in get_drive_labels() {
+        let drive_name = drive_letter.to_string();
+        let drive_info = DriveInfo::new(drive_name);
+        result.push(drive_info);
+    }
+    result
+}
