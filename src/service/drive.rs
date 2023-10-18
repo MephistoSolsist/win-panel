@@ -1,3 +1,4 @@
+extern crate winapi;
 use std::io;
 pub struct DriveInfo {
     drive_name: String,
