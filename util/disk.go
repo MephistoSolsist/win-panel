@@ -7,9 +7,9 @@ import (
 )
 
 type DiskMessage struct {
+	Name  string
 	Free  string
 	Total string
-	Name  string
 }
 
 const (
@@ -24,7 +24,7 @@ func GetDiskUsage() []DiskMessage {
 
 	var free, total, avail uint64
 
-	for _, drive := range "bcdefghijklmnopqrstuvwxyz" {
+	for _, drive := range "ABCDEFGHIJKLMNOPQRSTUVWXYZ" {
 		path := string(drive) + ":\\"
 		pathPtr, err := windows.UTF16PtrFromString(path)
 		if err != nil {
