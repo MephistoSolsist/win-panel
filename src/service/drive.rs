@@ -1,12 +1,30 @@
 extern crate winapi;
 use std::io;
 use winapi::um::winnt::ULARGE_INTEGER;
+pub struct DriveInfoData {
+    pub label_name: String,
+    pub format: String,
+    pub available_free_space: u64,
+    pub total_size: u64,
+    pub total_free_space: u64,
+}
 pub struct DriveInfo {
     drive_name: String,
 }
 impl DriveInfo {
     pub fn new(drive_name: String) -> Self {
         Self { drive_name }
+    }
+    pub fn get_all_info(&self) -> io::Result<DriveInfoData> {
+        let info = self.drive_info()?;
+        let usage = self.usage()?;
+        Ok(DriveInfoData {
+            label_name: info.1,
+            format: info.0,
+            available_free_space: usage.0,
+            total_size: usage.1,
+            total_free_space: usage.2,
+        })
     }
     /// 卷标 和 分区格式 such as NTFS or FAT32
     pub fn drive_info(&self) -> io::Result<(String, String)> {
@@ -40,9 +58,9 @@ impl DriveInfo {
         unsafe {
             let drive_name = self.drive_name.clone() + ":\\";
             let drive_name = drive_name.encode_utf16().collect::<Vec<_>>();
-            let mut available_free_space: ULARGE_INTEGER=std::mem::zeroed();
-            let mut total_size: ULARGE_INTEGER=std::mem::zeroed();
-            let mut total_free_space: ULARGE_INTEGER=std::mem::zeroed();
+            let mut available_free_space: ULARGE_INTEGER = std::mem::zeroed();
+            let mut total_size: ULARGE_INTEGER = std::mem::zeroed();
+            let mut total_free_space: ULARGE_INTEGER = std::mem::zeroed();
             if 0 != winapi::um::fileapi::GetDiskFreeSpaceExW(
                 drive_name.as_ptr(),
                 &mut available_free_space,
