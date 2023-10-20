@@ -40,9 +40,9 @@ impl DriveInfo {
         unsafe {
             let drive_name = self.drive_name.clone() + ":\\";
             let drive_name = drive_name.encode_utf16().collect::<Vec<_>>();
-            let mut available_free_space: ULARGE_INTEGER;
-            let mut total_size: ULARGE_INTEGER;
-            let mut total_free_space: ULARGE_INTEGER;
+            let mut available_free_space: ULARGE_INTEGER=std::mem::zeroed();
+            let mut total_size: ULARGE_INTEGER=std::mem::zeroed();
+            let mut total_free_space: ULARGE_INTEGER=std::mem::zeroed();
             if 0 != winapi::um::fileapi::GetDiskFreeSpaceExW(
                 drive_name.as_ptr(),
                 &mut available_free_space,

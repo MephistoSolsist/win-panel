@@ -1,4 +1,9 @@
-mod main_router;
 mod drive_router;
 
-pub use main_router::setup_router;
+use axum::Router;
+use tower_http::cors::CorsLayer;
+
+
+pub fn setup_router() -> Router<> {
+    Router::new().merge(drive_router::drive_router_setup()).layer(CorsLayer::permissive())
+}
