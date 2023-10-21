@@ -37,14 +37,14 @@ impl DriveInfo {
         }
     }
     pub fn get_all_info(&self) -> io::Result<DriveInfoData> {
-        let info = self.drive_info()?;
-        let usage = self.usage()?;
+        let (label_name, format) = self.drive_info()?;
+        let (available_free_space, total_size, total_free_space) = self.usage()?;
         Ok(DriveInfoData {
-            label_name: info.1,
-            format: info.0,
-            available_free_space: usage.0,
-            total_size: usage.1,
-            total_free_space: usage.2,
+            label_name: label_name,
+            format: format,
+            available_free_space: available_free_space,
+            total_size: total_size,
+            total_free_space: total_free_space,
         })
     }
     /// 卷标 和 分区格式 such as NTFS or FAT32
@@ -63,13 +63,16 @@ impl DriveInfo {
                 file_system_name_buffer.as_mut_ptr(),
                 file_system_name_buffer.len() as u32,
             );
-            println!("result: {}", result);
             if 0 == result {
                 Err(io::Error::last_os_error())
             } else {
                 Ok((
-                    String::from_utf16_lossy(&file_system_name_buffer),
-                    String::from_utf16_lossy(&volume_name_buffer),
+                    String::from_utf16_lossy(&file_system_name_buffer)
+                        .trim_end_matches('\0')
+                        .to_string(),
+                    String::from_utf16_lossy(&volume_name_buffer)
+                        .trim_end_matches('\0')
+                        .to_string(),
                 ))
             }
         }
