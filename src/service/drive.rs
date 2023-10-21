@@ -1,4 +1,5 @@
 extern crate winapi;
+use std::fs;
 use std::io;
 use winapi::um::winnt::ULARGE_INTEGER;
 pub struct DriveInfoData {
@@ -10,21 +11,24 @@ pub struct DriveInfoData {
 }
 pub struct DriveInfo {
     pub drive_name: String,
-    encoded_root_path: Vec<u16>,
 }
 impl DriveInfo {
     pub fn new(drive_name: String) -> Self {
-        Self {
-            encoded_root_path: {
-                let drive_name = drive_name.clone() + ":\\";
-                drive_name.encode_utf16().collect::<Vec<_>>()
-            },
-            drive_name,
-        }
+        Self { drive_name }
     }
+    fn get_encoded_root_path(&self) -> Vec<u16> {
+        let drive_name = self.drive_name.clone() + ":\\";
+        let mut result = drive_name.encode_utf16().collect::<Vec<_>>();
+        result.push(0); //字符串终止符
+        result
+    }
+    // pub fn dir_exists(&self) -> bool {
+    //     fs::metadata(&self.encoded_root_path_str).is_ok()
+    // }
     pub fn get_is_fixed(&self) -> bool {
         unsafe {
-            let result = winapi::um::fileapi::GetDriveTypeW(self.encoded_root_path.as_ptr());
+            let encoded_root_path = self.get_encoded_root_path();
+            let result = winapi::um::fileapi::GetDriveTypeW(encoded_root_path.as_ptr());
             //https://learn.microsoft.com/zh-tw/windows/win32/api/fileapi/nf-fileapi-getdrivetypew
             // DRIVE_FIXED  3
             // 磁片磁碟機具有固定媒體;例如，硬碟或快閃磁片磁碟機。
@@ -53,8 +57,9 @@ impl DriveInfo {
         let mut volume_name_buffer = [0u16; 256];
         let mut file_system_name_buffer = [0u16; 256];
         unsafe {
-            let result = winapi::um::fileapi::GetVolumeInformationW(
-                self.encoded_root_path.as_ptr(),
+            let encoded_root_path = self.get_encoded_root_path();
+            let result: i32 = winapi::um::fileapi::GetVolumeInformationW(
+                encoded_root_path.as_ptr(),
                 volume_name_buffer.as_mut_ptr(),
                 volume_name_buffer.len() as u32,
                 std::ptr::null_mut(),
@@ -82,8 +87,9 @@ impl DriveInfo {
             let mut available_free_space: ULARGE_INTEGER = std::mem::zeroed();
             let mut total_size: ULARGE_INTEGER = std::mem::zeroed();
             let mut total_free_space: ULARGE_INTEGER = std::mem::zeroed();
+            let encoded_root_path = self.get_encoded_root_path();
             let result = winapi::um::fileapi::GetDiskFreeSpaceExW(
-                self.encoded_root_path.as_ptr(),
+                encoded_root_path.as_ptr(),
                 &mut available_free_space,
                 &mut total_size,
                 &mut total_free_space,
@@ -115,7 +121,7 @@ pub fn get_drive_labels() -> Vec<char> {
     }
     result
 }
-pub fn get_drives() -> Vec<DriveInfo> {
+pub fn get_drives_info() -> Vec<DriveInfo> {
     let mut result = vec![];
     for drive_letter in get_drive_labels() {
         let drive_name = drive_letter.to_string();
