@@ -1,6 +1,7 @@
 mod router;
 mod service;
 use router::setup_router;
+use sysinfo::{ComponentExt, SystemExt};
 
 #[tokio::main]
 async fn main() {
