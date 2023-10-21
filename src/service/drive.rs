@@ -1,5 +1,4 @@
 extern crate winapi;
-use std::fs;
 use std::io;
 use winapi::um::winnt::ULARGE_INTEGER;
 pub struct DriveInfoData {
