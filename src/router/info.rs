@@ -71,13 +71,17 @@ struct CpuInfo {
 }
 async fn cpu() -> Json<Value> {
     let info = get_cpu_info();
-    Json(json!(CpuInfo {
-        name: info.name,
-        cpu_usage: info.cpu_usage,
-        vendor_id: info.vendor_id,
-        brand: info.brand,
-        frequency: info.frequency,
-    }))
+    let mut result = vec![];
+    for cpu in info {
+        result.push(CpuInfo {
+            name: cpu.name,
+            cpu_usage: cpu.cpu_usage,
+            vendor_id: cpu.vendor_id,
+            brand: cpu.brand,
+            frequency: cpu.frequency,
+        });
+    }
+    Json(json!(result))
 }
 #[derive(Serialize, Deserialize)]
 struct NetworkInfo {
