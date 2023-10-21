@@ -19,6 +19,9 @@ pub fn drive_router_setup() -> Router {
 async fn disk() -> Json<Value> {
     let mut drive_list = vec![];
     for drive in get_drives() {
+        if !drive.get_is_fixed() {
+            continue;
+        }
         match drive.get_all_info() {
             Ok(info) => {
                 let drive = Drive {

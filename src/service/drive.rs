@@ -9,11 +9,32 @@ pub struct DriveInfoData {
     pub total_free_space: u64,
 }
 pub struct DriveInfo {
-    drive_name: String,
+    pub drive_name: String,
+    encoded_root_path: Vec<u16>,
 }
 impl DriveInfo {
     pub fn new(drive_name: String) -> Self {
-        Self { drive_name }
+        Self {
+            encoded_root_path: {
+                let drive_name = drive_name.clone() + ":\\";
+                drive_name.encode_utf16().collect::<Vec<_>>()
+            },
+            drive_name,
+        }
+    }
+    pub fn get_is_fixed(&self) -> bool {
+        unsafe {
+            let result = winapi::um::fileapi::GetDriveTypeW(self.encoded_root_path.as_ptr());
+            //https://learn.microsoft.com/zh-tw/windows/win32/api/fileapi/nf-fileapi-getdrivetypew
+            // DRIVE_FIXED  3
+            // 磁片磁碟機具有固定媒體;例如，硬碟或快閃磁片磁碟機。
+            // 本地磁盘
+            if result == 3 {
+                return true;
+            } else {
+                return false;
+            }
+        }
     }
     pub fn get_all_info(&self) -> io::Result<DriveInfoData> {
         let info = self.drive_info()?;
@@ -29,13 +50,11 @@ impl DriveInfo {
     /// 卷标 和 分区格式 such as NTFS or FAT32
     pub fn drive_info(&self) -> io::Result<(String, String)> {
         //winapi::um::fileapi::GetVolumeInformationW
-        let drive_name = self.drive_name.clone() + ":\\";
-        let drive_name = drive_name.encode_utf16().collect::<Vec<_>>();
         let mut volume_name_buffer = [0u16; 256];
         let mut file_system_name_buffer = [0u16; 256];
         unsafe {
             let result = winapi::um::fileapi::GetVolumeInformationW(
-                drive_name.as_ptr(),
+                self.encoded_root_path.as_ptr(),
                 volume_name_buffer.as_mut_ptr(),
                 volume_name_buffer.len() as u32,
                 std::ptr::null_mut(),
@@ -44,7 +63,8 @@ impl DriveInfo {
                 file_system_name_buffer.as_mut_ptr(),
                 file_system_name_buffer.len() as u32,
             );
-            if result != 0 {
+            println!("result: {}", result);
+            if 0 == result {
                 Err(io::Error::last_os_error())
             } else {
                 Ok((
@@ -56,24 +76,23 @@ impl DriveInfo {
     }
     pub fn usage(&self) -> io::Result<(u64, u64, u64)> {
         unsafe {
-            let drive_name = self.drive_name.clone() + ":\\";
-            let drive_name = drive_name.encode_utf16().collect::<Vec<_>>();
             let mut available_free_space: ULARGE_INTEGER = std::mem::zeroed();
             let mut total_size: ULARGE_INTEGER = std::mem::zeroed();
             let mut total_free_space: ULARGE_INTEGER = std::mem::zeroed();
-            if 0 != winapi::um::fileapi::GetDiskFreeSpaceExW(
-                drive_name.as_ptr(),
+            let result = winapi::um::fileapi::GetDiskFreeSpaceExW(
+                self.encoded_root_path.as_ptr(),
                 &mut available_free_space,
                 &mut total_size,
                 &mut total_free_space,
-            ) {
+            );
+            if 0 == result {
+                return Err(io::Error::last_os_error());
+            } else {
                 return Ok((
                     *available_free_space.QuadPart(),
                     *total_size.QuadPart(),
                     *total_free_space.QuadPart(),
                 ));
-            } else {
-                return Err(io::Error::last_os_error());
             }
         }
     }
