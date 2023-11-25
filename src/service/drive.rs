@@ -53,28 +53,28 @@ impl DriveInfo {
     /// 卷标 和 分区格式 such as NTFS or FAT32
     pub fn drive_info(&self) -> io::Result<(String, String)> {
         //winapi::um::fileapi::GetVolumeInformationW
-        let mut volume_name_buffer = [0u16; 256];
-        let mut file_system_name_buffer = [0u16; 256];
+        let mut label_name_buffer = [0u16; 256];
+        let mut format_name_buffer = [0u16; 256];
         unsafe {
             let encoded_root_path = self.get_encoded_root_path();
             let result: i32 = winapi::um::fileapi::GetVolumeInformationW(
                 encoded_root_path.as_ptr(),
-                volume_name_buffer.as_mut_ptr(),
-                volume_name_buffer.len() as u32,
+                label_name_buffer.as_mut_ptr(),
+                label_name_buffer.len() as u32,
                 std::ptr::null_mut(),
                 std::ptr::null_mut(),
                 std::ptr::null_mut(),
-                file_system_name_buffer.as_mut_ptr(),
-                file_system_name_buffer.len() as u32,
+                format_name_buffer.as_mut_ptr(),
+                format_name_buffer.len() as u32,
             );
             if 0 == result {
                 Err(io::Error::last_os_error())
             } else {
                 Ok((
-                    String::from_utf16_lossy(&file_system_name_buffer)
+                    String::from_utf16_lossy(&label_name_buffer)
                         .trim_end_matches('\0')
                         .to_string(),
-                    String::from_utf16_lossy(&volume_name_buffer)
+                    String::from_utf16_lossy(&format_name_buffer)
                         .trim_end_matches('\0')
                         .to_string(),
                 ))
